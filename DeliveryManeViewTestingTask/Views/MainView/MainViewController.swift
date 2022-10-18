@@ -27,7 +27,7 @@ final class MainViewController: UIViewController {
     private var foods: [Food] = []
     
     // Высота рекламного коллекВью
-    private var advertisingHeight: CGFloat = 150
+    private var advertisingHeight: CGFloat = 0
     
     // Состояние для смещения высоты вью
     private var previousOffsetState: CGFloat = 0
@@ -76,6 +76,13 @@ final class MainViewController: UIViewController {
         return collectionView
     }()
     
+    // Констрейнт отвечающий за расстояние от верха экрана до верха тэйблвью
+    private lazy var constraintHeightOfAdvertisingView: NSLayoutConstraint = {
+        let constraint = partitionCollectionView.topAnchor.constraint(equalTo: townLabel.bottomAnchor,
+                                                                       constant: 150)
+        return constraint
+    }()
+    
     // MARK: - Override Methods
     
     override func viewDidLoad() {
@@ -93,7 +100,12 @@ final class MainViewController: UIViewController {
         townLabel.text = presenter.setTownLabelText()
        
         setupSubviews(townLabel, advertisingСollectionView, partitionCollectionView,foodTableView)
+        advertisingСollectionView.sendSubviewToBack(foodTableView)
         setConstraints()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        partitionCollectionView.selectItem(at: IndexPath(index: 0), animated: true, scrollPosition: .left)
     }
     
     // MARK: - Public Methods
@@ -132,10 +144,9 @@ final class MainViewController: UIViewController {
                                                                constant: 0),
             advertisingСollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor,
                                                                 constant: 0),
-            advertisingСollectionView.heightAnchor.constraint(equalToConstant: advertisingHeight),
+            advertisingСollectionView.heightAnchor.constraint(lessThanOrEqualToConstant: 150),
             
-            partitionCollectionView.topAnchor.constraint(equalTo: advertisingСollectionView.bottomAnchor,
-                                                         constant: 0),
+            constraintHeightOfAdvertisingView,
             partitionCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor,
                                                              constant: 0),
             partitionCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor,
@@ -149,6 +160,11 @@ final class MainViewController: UIViewController {
             foodTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             foodTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+        
+    }
+    private func deactivateConstraints() {
+        NSLayoutConstraint.deactivate([partitionCollectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,
+                                                                                    constant: advertisingHeight),])
     }
 }
 
@@ -238,15 +254,15 @@ extension MainViewController: UITableViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         
         if scrollView.contentOffset.y > 150 {
-            advertisingHeight = 0
+            constraintHeightOfAdvertisingView.constant = 0
         }
         
         let offsetDiff = previousOffsetState - scrollView.contentOffset.y
         
         previousOffsetState = scrollView.contentOffset.y
         
-        advertisingHeight += offsetDiff
-        print(advertisingHeight)
-        setConstraints()
+        if scrollView.contentOffset.y < 150 {
+            constraintHeightOfAdvertisingView.constant += offsetDiff
+        }
     }
 }
